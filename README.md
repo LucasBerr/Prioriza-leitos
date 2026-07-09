@@ -21,7 +21,7 @@ A aplicacao nao substitui decisoes tecnicas do SUS. O resultado deve ser interpr
 
 ## Tema e contexto
 
-A distribuicao de leitos hospitalares e uma decisao publica relevante porque afeta acesso, deslocamento de pacientes, sobrecarga de municipios polo e uso de recursos publicos. Como os recursos sao limitados, a analise considera oferta, demanda, populacao e componentes de risco para comparar municipios de forma auditavel.
+A distribuicao de leitos hospitalares é uma decisao publica relevante porque afeta acesso, deslocamento de pacientes, sobrecarga de municípios polo e uso de recursos publicos. Como os recursos sao limitados, a analise considera oferta, demanda, populacao e componentes de risco para comparar municipios de forma auditavel.
 
 O recorte inicial do projeto e o estado do Rio Grande do Sul, com analises por municipio, ano e tipo de leito.
 
@@ -50,7 +50,7 @@ Os dados brutos e intermediarios nao fazem parte deste repositorio de publicacao
 
 O pipeline original consolida os dados em tabelas analiticas por municipio, ano e tipo de leito. A partir dessas tabelas sao calculados indicadores comparaveis, como oferta de leitos SUS, demanda hospitalar, populacao e componentes auxiliares.
 
-O score de prioridade e um baseline transparente baseado em regras. Ele combina componentes interpretaveis para produzir um ranking relativo. A linguagem correta do resultado e "prioridade relativa para investigacao e possivel investimento", nao uma recomendacao automatica de abertura de leitos.
+O score de prioridade e um baseline transparente baseado em regras. Ele combina componentes interpretaveis para produzir um ranking relativo. A linguagem correta do resultado é "prioridade relativa para investigacao e possivel investimento", nao uma recomendacao automatica de abertura de leitos.
 
 ## Tipos de leito
 
@@ -61,10 +61,6 @@ O dashboard contempla paginas e filtros para:
 - Leitos obstetricos.
 - Leitos pediatricos.
 - UTI Adulto.
-- UTI Pediatrica.
-- UTI Neonatal.
-- UTI Coronariana.
-- UTI Queimado.
 
 Alguns tipos especializados devem ser interpretados com cuidado, pois podem exigir analise regional e nao apenas municipal.
 
@@ -101,17 +97,6 @@ Depois acesse:
 http://localhost:8000
 ```
 
-## Como publicar no GitHub Pages
-
-1. Suba este repositorio para o GitHub.
-2. Acesse `Settings > Pages`.
-3. Em `Build and deployment`, escolha `Deploy from a branch`.
-4. Selecione a branch `main`.
-5. Selecione a pasta `/root`.
-6. Salve a configuracao e aguarde a publicacao.
-
-O arquivo `.nojekyll` foi mantido para garantir que o GitHub Pages publique os arquivos estaticos sem processamento adicional.
-
 ## Relacao com os requisitos do projeto
 
 Este dashboard web foi organizado para atender a proposta de uma aplicacao interativa de inteligencia de negocios:
@@ -121,8 +106,6 @@ Este dashboard web foi organizado para atender a proposta de uma aplicacao inter
 - utiliza filtros por tipo de leito e regiao;
 - usa dados publicos e fontes oficiais;
 - documenta metodologia, limitacoes e cuidados de interpretacao.
-
-Caso a entrega exija obrigatoriamente arquivo `.pbix`, este site pode acompanhar o relatorio como publicacao complementar, mas a exigencia formal da disciplina deve ser conferida com a professora.
 
 ## Limitacoes
 
