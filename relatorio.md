@@ -4,9 +4,9 @@
 **Turma:** T3  
 **Instituicao:** Pontificia Universidade Catolica do Rio Grande do Sul  
 **Professora:** Dra. Aline de Campos  
-**Ano/Semestre:** preencher  
-**Grupo:** preencher  
-**Integrantes:** preencher
+**Ano/Semestre:** 2026/1  
+**Grupo:** Leitos SUS
+**Integrantes:** Lucas Tabelli Berr, Alice Martofel Guzas
 
 ## 1. Contextualizacao
 
@@ -133,8 +133,7 @@ O projeto possui limitacoes metodologicas importantes:
 - municipios pequenos podem depender de redes regionais de atendimento;
 - municipios polo podem apresentar demanda elevada por atenderem pacientes de fora;
 - alguns tipos de leito especializados devem ser analisados em escala regional;
-- o score e uma medida relativa e depende das regras escolhidas;
-- dados publicos podem possuir defasagens, revisoes ou incompletudes;
+- o score é uma medida relativa e depende das regras escolhidas;
 - o projeto nao considera custo de implantacao, disponibilidade de profissionais ou estrutura fisica detalhada.
 
 Essas limitacoes reforcam que o dashboard deve ser usado como ferramenta de apoio a investigacao e nao como decisao final.
@@ -145,7 +144,7 @@ O Prioriza Leitos organiza dados publicos de saude e populacao em uma aplicacao 
 
 A aplicacao contribui para transformar bases tecnicas em informacoes mais acessiveis, permitindo comparacao entre municipios, visualizacao de rankings e entendimento dos principais componentes do score.
 
-Como continuidade, o projeto pode ser aprimorado com novos indicadores, validacao com especialistas, integracao com Power BI e aprofundamento regional para leitos de alta complexidade.
+Como continuidade, o projeto pode ser aprimorado com novos indicadores, validacao com especialistas e aprofundamento regional para leitos de alta complexidade.
 
 ## 10. Referencias
 
