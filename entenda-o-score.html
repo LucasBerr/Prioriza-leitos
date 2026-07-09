@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Entenda como o score transparente do Prioriza Leitos é calculado.">
+    <title>Prioriza Leitos | Entenda o score</title>
+    <link rel="stylesheet" href="assets/css/styles.css">
+  </head>
+  <body data-page="score">
+    <a class="skip-link" href="#conteudo">Ir para o conteúdo</a>
+
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">PL</div>
+          <div>
+            <p class="eyebrow">Prioriza Leitos</p>
+            <h1>Como o score é calculado</h1>
+            <p class="subtitle">Veja como os dados públicos do município e do tipo de leito selecionado formam uma prioridade relativa para investigação técnica.</p>
+          </div>
+        </div>
+        <a class="button primary" id="back-to-map" href="index.html">Ver no mapa</a>
+      </header>
+
+      <section class="selection-bar" aria-label="Seleção analisada">
+        <div class="input-group">
+          <label for="score-municipality">Município</label>
+          <select id="score-municipality"></select>
+        </div>
+        <div class="input-group">
+          <label for="score-bed-type">Tipo de leito</label>
+          <select id="score-bed-type"></select>
+        </div>
+        <div class="selection-chip">Ano <strong id="score-year">—</strong></div>
+        <div class="selection-chip">Posição oficial <strong id="score-rank">—</strong></div>
+      </section>
+
+      <section class="notice" role="note">
+        <span class="notice-icon" aria-hidden="true">i</span>
+        <div><strong>Aviso metodológico:</strong> o score representa prioridade relativa para investigação e possível investimento. Ele não determina automaticamente onde novos leitos devem ser instalados.</div>
+      </section>
+
+      <section class="simulation-note" aria-label="Simulador de pesos">
+        <div>
+          <p class="section-title">Simulação interativa</p>
+          <h2>Ajuste os pesos para testar cenários</h2>
+          <p>As alterações abaixo recalculam apenas esta simulação na tela. Elas não representam decisão oficial de investimento nem substituem a metodologia original do projeto.</p>
+        </div>
+        <div class="simulation-actions">
+          <span class="weight-sum is-ok" id="weight-sum" role="status">Soma dos pesos: 100%</span>
+          <button class="button" id="reset-weights" type="button">Restaurar pesos padrão</button>
+        </div>
+      </section>
+
+      <main id="conteudo" class="score-layout">
+        <section class="main-card" aria-label="Fluxo e componentes do score">
+          <div class="section-header">
+            <div>
+              <p class="section-title">Fluxo metodológico</p>
+              <h2>Dos dados públicos ao score final</h2>
+              <p>Cada componente é calculado para município, ano e tipo de leito, comparado com municípios equivalentes e convertido para uma escala de 0 a 100.</p>
+            </div>
+          </div>
+
+          <div class="flow" aria-label="Etapas do cálculo">
+            <article class="flow-step"><span>1</span><strong>Fontes públicas</strong><small>CNES, SIH/SUS e IBGE</small></article>
+            <article class="flow-step"><span>2</span><strong>Indicadores</strong><small>Oferta, demanda, fluxo e risco</small></article>
+            <article class="flow-step"><span>3</span><strong>Normalização</strong><small>Comparação de 0 a 100</small></article>
+            <article class="flow-step"><span>4</span><strong>Pesos</strong><small>Importância transparente</small></article>
+            <article class="flow-step"><span>5</span><strong>Score final</strong><small>Prioridade relativa</small></article>
+          </div>
+
+          <div class="dimensions-grid" id="dimension-cards" aria-label="Cinco componentes do score"></div>
+
+          <section class="formula-card" aria-label="Composição do score final">
+            <div>
+              <p class="section-title">Composição ponderada</p>
+              <h2>O score soma cinco contribuições</h2>
+              <p>População é usada como denominador adequado a cada tipo de leito. Ela não recebe peso isolado.</p>
+            </div>
+            <div class="formula-result">
+              <span>Score simulado</span>
+              <strong id="final-score">—</strong>
+              <small id="final-band">—</small>
+            </div>
+            <div class="contribution-list" id="contribution-list"></div>
+            <div class="calculation-diagram" id="calculation-diagram" aria-label="Diagrama explicativo do cálculo"></div>
+          </section>
+        </section>
+
+        <aside class="side-panel" id="dimension-detail" aria-live="polite"></aside>
+      </main>
+    </div>
+
+    <div class="sheet-backdrop" id="sheet-backdrop" aria-hidden="true"></div>
+    <section class="mobile-sheet" id="mobile-sheet" aria-label="Detalhes do componente">
+      <div class="sheet-handle" aria-hidden="true"></div>
+      <button class="sheet-close" id="sheet-close" type="button" aria-label="Fechar detalhes">×</button>
+      <div id="mobile-sheet-content"></div>
+    </section>
+
+    <script type="module" src="assets/js/app.js"></script>
+    <script type="module" src="assets/js/score.js"></script>
+  </body>
+</html>

@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Mapa de prioridade relativa para investigação e possível investimento em leitos hospitalares SUS no Rio Grande do Sul.">
+    <title>Prioriza Leitos | Mapa</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="assets/css/styles.css">
+  </head>
+  <body data-page="mapa">
+    <a class="skip-link" href="#conteudo">Ir para o conteúdo</a>
+
+    <main id="conteudo" class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">PL</div>
+          <div>
+            <h1>Prioriza Leitos</h1>
+            <p class="subtitle">Mapa interativo para apoiar a investigação de municípios com maior prioridade relativa para análise de oferta, demanda e possíveis investimentos em leitos hospitalares SUS no Rio Grande do Sul.</p>
+          </div>
+        </div>
+        <div class="update-pill">Dados do MVP · <span data-update-year>carregando</span></div>
+      </header>
+
+      <section class="map-layout" aria-label="Painel principal">
+        <aside class="filter-panel" aria-label="Filtros e metodologia">
+          <div>
+            <p class="section-title">Filtros</p>
+            <div class="input-group">
+              <label for="bed-type">Tipo de leito</label>
+              <select id="bed-type"></select>
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label for="municipality-search">Buscar município</label>
+            <input id="municipality-search" type="search" placeholder="Ex.: Pelotas, Passo Fundo…" autocomplete="off">
+          </div>
+
+          <div class="filter-row">
+            <div class="input-group">
+              <label for="year-filter">Ano</label>
+              <select id="year-filter" disabled></select>
+            </div>
+            <div class="input-group">
+              <label for="region-filter">Macrorregião</label>
+              <select id="region-filter"><option value="">Todas</option></select>
+            </div>
+          </div>
+
+          <div class="legend-block" aria-label="Legenda da escala de prioridade">
+            <p class="section-title">Escala de prioridade relativa</p>
+            <div class="legend-ramp" aria-hidden="true"></div>
+            <div class="legend-labels"><span>Baixa</span><span>Média</span><span>Muito alta</span></div>
+          </div>
+
+          <div class="method-box">
+            <strong>Como ler.</strong> O score combina cinco componentes normalizados. A cor indica prioridade relativa para investigação, não uma decisão automática de implantação de leitos.
+          </div>
+
+          <div>
+            <p class="section-title">Municípios em destaque</p>
+            <div class="compact-list" id="compact-list" aria-live="polite"></div>
+          </div>
+        </aside>
+
+        <section class="map-card" aria-label="Mapa e detalhes do município selecionado">
+          <div class="map-stage">
+            <div class="map-heading">
+              <div>
+                <strong>Rio Grande do Sul</strong>
+                <span>497 municípios · selecione um ponto no mapa</span>
+              </div>
+              <div class="focus-chip" id="selected-type-chip">Carregando…</div>
+            </div>
+            <div id="priority-map" class="priority-map loading-state">Carregando mapa…</div>
+          </div>
+          <aside class="details-card" id="details-panel" aria-live="polite">
+            <div class="loading-state">Carregando dados…</div>
+          </aside>
+        </section>
+      </section>
+    </main>
+
+    <div class="sheet-backdrop" id="sheet-backdrop" aria-hidden="true"></div>
+    <section class="mobile-sheet" id="mobile-sheet" aria-label="Detalhes do município selecionado">
+      <div class="sheet-handle" aria-hidden="true"></div>
+      <button class="sheet-close" id="sheet-close" type="button" aria-label="Fechar detalhes">×</button>
+      <div id="mobile-sheet-content"></div>
+    </section>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script type="module" src="assets/js/app.js"></script>
+    <script type="module" src="assets/js/maps.js"></script>
+  </body>
+</html>
