@@ -9,9 +9,9 @@ Este repositorio contem apenas a versao estatica do dashboard, preparada para pu
 **Disciplina:** Banco de Dados 2  
 **Turma:** T3  
 **Instituicao:** Pontificia Universidade Catolica do Rio Grande do Sul  
-**Ano/Semestre:** preencher  
-**Grupo:** preencher  
-**Integrantes:** preencher
+**Ano/Semestre:** 2026  
+**Grupo:** Leitos
+**Integrantes:** Lucas Tabelli Berr, Alice Martofel Guzas  
 
 ## Objetivo
 
