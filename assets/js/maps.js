@@ -16,14 +16,20 @@ function scoreColor(score) {
   return "#d7f0d5";
 }
 
-function detailHTML(record, rank, total) {
+function scoreValue(record, weights) {
+  return P.weightedScore(record, weights);
+}
+
+function detailHTML(record, rank, total, weights, usingCustomWeights) {
   const bars = COMPONENTS.map(([label, key]) => `
     <div class="bar-row">
       <div class="bar-label"><span>${label}</span><strong>${P.normalizedText(record[key])}</strong></div>
       <div class="bar-track"><div class="bar-fill" style="--bar-width:${Number(record[key] || 0) * 100}%"></div></div>
     </div>
   `).join("");
-  const score = P.formatNumber(record.score_prioridade_mvp * 100, 1);
+  const currentScore = scoreValue(record, weights);
+  const score = P.formatNumber(currentScore * 100, 1);
+  const scoreLabel = usingCustomWeights ? "Score com pesos salvos" : "Score oficial";
   return `
     <div class="detail-head">
       <div>
@@ -32,7 +38,7 @@ function detailHTML(record, rank, total) {
         <p>${record.regiao_saude} · ${record.macroregiao_saude}</p>
         <span class="priority-badge">Prioridade ${P.priorityLabel(record.faixa_prioridade)}</span>
       </div>
-      <div class="score-ring" style="--score-angle:${record.score_prioridade_mvp * 360}deg" aria-label="Score ${score} de 100"><strong>${score}</strong></div>
+      <div class="score-ring" style="--score-angle:${currentScore * 360}deg" aria-label="${scoreLabel} ${score} de 100"><strong>${score}</strong></div>
     </div>
     <div class="rank-line">
       <div class="metric-box"><span>Posição relativa</span><strong>${rank}º <small>de ${total}</small></strong></div>
@@ -43,6 +49,7 @@ function detailHTML(record, rank, total) {
     <p class="section-title">Componentes normalizados</p>
     <div class="dimension-bars">${bars}</div>
     <a class="button primary" href="entenda-o-score.html?${P.scoreQuery(record)}">Entenda este score</a>
+    ${usingCustomWeights ? '<div class="warning"><strong>Pesos personalizados:</strong> este mapa está usando os pesos salvos no simulador. O score oficial permanece disponível ao restaurar e salvar os pesos padrão.</div>' : ""}
     <div class="warning"><strong>Leitura responsável:</strong> alta prioridade relativa indica onde investigar com mais cuidado. Não é recomendação automática de novos leitos.</div>
   `;
 }
@@ -88,6 +95,8 @@ async function initMap() {
     const params = new URLSearchParams(window.location.search);
     const requestedMunicipality = params.get("municipio");
     const requestedType = params.get("tipo");
+    const savedWeights = P.loadScoreWeights();
+    const usingCustomWeights = P.hasCustomScoreWeights(savedWeights);
     let visibleRecords = [];
     let selectedRecord = null;
     let markers = new Map();
@@ -104,14 +113,14 @@ async function initMap() {
     function recordsForType() {
       return records
         .filter((row) => row.tipo_leito === typeSelect.value)
-        .sort((a, b) => b.score_prioridade_mvp - a.score_prioridade_mvp || a.municipio_nome.localeCompare(b.municipio_nome, "pt-BR"));
+        .sort((a, b) => scoreValue(b, savedWeights) - scoreValue(a, savedWeights) || a.municipio_nome.localeCompare(b.municipio_nome, "pt-BR"));
     }
 
     function selectRecord(record, openSheet = false) {
       selectedRecord = record;
       const allForType = recordsForType();
       const rank = allForType.findIndex((row) => row.municipio_id === record.municipio_id) + 1;
-      const html = detailHTML(record, rank, allForType.length);
+      const html = detailHTML(record, rank, allForType.length, savedWeights, usingCustomWeights);
       detailPanel.innerHTML = html;
       compactList.querySelectorAll(".compact-item").forEach((item) => item.classList.toggle("active", item.dataset.id === record.municipio_id));
       markers.forEach((marker, id) => marker.setStyle({ weight: id === record.municipio_id ? 3 : 1.5, color: id === record.municipio_id ? "#183126" : "#ffffff" }));
@@ -121,7 +130,7 @@ async function initMap() {
     function renderCompactList() {
       compactList.innerHTML = visibleRecords.slice(0, 5).map((row) => `
         <button class="compact-item${row.municipio_id === selectedRecord?.municipio_id ? " active" : ""}" type="button" data-id="${row.municipio_id}">
-          <span>${row.municipio_nome}</span><b>${P.formatNumber(row.score_prioridade_mvp * 100, 1)}</b>
+          <span>${row.municipio_nome}</span><b>${P.formatNumber(scoreValue(row, savedWeights) * 100, 1)}</b>
         </button>
       `).join("") || '<div class="empty-state">Nenhum município encontrado.</div>';
       compactList.querySelectorAll("button").forEach((button) => button.addEventListener("click", () => {
@@ -144,14 +153,15 @@ async function initMap() {
       markers = new Map();
       visibleRecords.forEach((record) => {
         if (record.latitude === null || record.longitude === null) return;
+        const currentScore = scoreValue(record, savedWeights);
         const marker = L.circleMarker([record.latitude, record.longitude], {
-          radius: 4 + record.score_prioridade_mvp * 7,
+          radius: 4 + currentScore * 7,
           color: "#ffffff",
-          fillColor: scoreColor(record.score_prioridade_mvp),
+          fillColor: scoreColor(currentScore),
           fillOpacity: 0.88,
           weight: 1.5,
         });
-        marker.bindTooltip(`<strong>${record.municipio_nome}</strong><br>Score: ${P.formatNumber(record.score_prioridade_mvp * 100, 1)}`, { direction: "top" });
+        marker.bindTooltip(`<strong>${record.municipio_nome}</strong><br>Score: ${P.formatNumber(currentScore * 100, 1)}`, { direction: "top" });
         marker.on("click", () => selectRecord(record, true));
         marker.addTo(markerLayer);
         markers.set(record.municipio_id, marker);

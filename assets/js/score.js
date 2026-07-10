@@ -70,7 +70,7 @@ let selectedDimension = DIMENSIONS[0].key;
 let expandedDimension = DIMENSIONS[0].key;
 let currentRecord;
 let currentTypeRecords = [];
-let currentWeights = { ...DEFAULT_WEIGHTS };
+let currentWeights = P.loadScoreWeights();
 
 function clampWeight(value) {
   const parsed = Number(value);
@@ -171,6 +171,7 @@ function updateSimulationView(record) {
   const score = simulatedScore(record);
   const sumBadge = document.querySelector("#weight-sum");
   const finalBand = document.querySelector("#final-band");
+  const saveButton = document.querySelector("#save-weights");
 
   document.querySelector("#final-score").textContent = P.formatNumber(score, 2);
 
@@ -186,6 +187,10 @@ function updateSimulationView(record) {
     finalBand.textContent = valid
       ? "Simulação com soma 100%"
       : "Simulação exploratória: soma diferente de 100%";
+  }
+
+  if (saveButton) {
+    saveButton.disabled = !valid;
   }
 
   DIMENSIONS.forEach((dimension) => {
@@ -280,9 +285,17 @@ async function initScore() {
     const municipalitySelect = document.querySelector("#score-municipality");
     const typeSelect = document.querySelector("#score-bed-type");
     const resetButton = document.querySelector("#reset-weights");
+    const saveButton = document.querySelector("#save-weights");
+    const saveStatus = document.querySelector("#save-status");
     const params = new URLSearchParams(window.location.search);
     const requestedMunicipality = params.get("municipio");
     const requestedType = params.get("tipo");
+
+    function updateSaveStatus(message) {
+      if (saveStatus) saveStatus.textContent = message;
+    }
+
+    updateSaveStatus(P.hasCustomScoreWeights(currentWeights) ? "Pesos personalizados salvos" : "Pesos padrão em uso");
 
     Object.entries(P.BED_TYPES).forEach(([value, label]) => typeSelect.add(new Option(label, value)));
     typeSelect.value = P.BED_TYPES[requestedType] ? requestedType : "uti_adulto";
@@ -314,7 +327,13 @@ async function initScore() {
     });
     resetButton?.addEventListener("click", () => {
       currentWeights = { ...DEFAULT_WEIGHTS };
+      updateSaveStatus("Pesos padrão restaurados nesta simulação");
       render(currentRecord, currentTypeRecords);
+    });
+    saveButton?.addEventListener("click", () => {
+      if (!isWeightSumValid()) return;
+      P.saveScoreWeights(currentWeights);
+      updateSaveStatus(P.hasCustomScoreWeights(currentWeights) ? "Pesos personalizados salvos" : "Pesos padrão salvos");
     });
     fillMunicipalities(requestedMunicipality);
   } catch (error) {
