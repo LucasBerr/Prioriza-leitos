@@ -65,7 +65,7 @@
           </div>
         </aside>
 
-        <section class="map-card" aria-label="Mapa e detalhes do município selecionado">
+        <section class="map-card" aria-label="Mapa de prioridade dos municípios">
           <div class="map-stage">
             <div class="map-heading">
               <div>
@@ -76,19 +76,9 @@
             </div>
             <div id="priority-map" class="priority-map loading-state">Carregando mapa…</div>
           </div>
-          <aside class="details-card" id="details-panel" aria-live="polite">
-            <div class="loading-state">Carregando dados…</div>
-          </aside>
         </section>
       </section>
     </main>
-
-    <div class="sheet-backdrop" id="sheet-backdrop" aria-hidden="true"></div>
-    <section class="mobile-sheet" id="mobile-sheet" aria-label="Detalhes do município selecionado">
-      <div class="sheet-handle" aria-hidden="true"></div>
-      <button class="sheet-close" id="sheet-close" type="button" aria-label="Fechar detalhes">×</button>
-      <div id="mobile-sheet-content"></div>
-    </section>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script type="module" src="assets/js/app.js"></script>
