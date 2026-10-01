@@ -31,7 +31,7 @@ function topRecords(records, type, region = "todas", limit = 12) {
   return records
     .filter((row) => row.tipo_leito === type)
     .filter((row) => region === "todas" || row.macroregiao_saude === region)
-    .sort((a, b) => b.score_prioridade_mvp - a.score_prioridade_mvp)
+    .sort((a, b) => b.score_padrao_0_100 - a.score_padrao_0_100)
     .slice(0, limit);
 }
 
@@ -44,18 +44,18 @@ function plotRanking(container, rows) {
       {
         type: "bar",
         orientation: "h",
-        x: ordered.map((row) => row.score_prioridade_mvp),
+        x: ordered.map((row) => row.score_padrao_0_100),
         y: ordered.map((row) => row.municipio_nome),
         customdata: ordered.map((row) => [
           P.formatNumber(row.internacoes_residentes),
-          P.formatNumber(row.leitos_sus_media, 1),
-          P.formatNumber(row.evasao_hospitalar_raw * 100, 1),
+          P.formatNumber(row.leitos_sus_locais_registrados, 1),
+          P.formatNumber(row.evasao_hospitalar_percentual, 1),
         ]),
         hovertemplate:
           "<b>%{y}</b><br>Score: %{x:.3f}<br>Internacoes residentes: %{customdata[0]}" +
           "<br>Leitos SUS medios: %{customdata[1]}<br>Evasao: %{customdata[2]}%<extra></extra>",
         marker: {
-          color: ordered.map((row) => row.score_prioridade_mvp),
+          color: ordered.map((row) => row.score_padrao_0_100),
           colorscale: [
             [0, "#dbecef"],
             [0.55, "#2c6b57"],
@@ -78,10 +78,10 @@ function renderTable(body, rows) {
         <tr>
           <td class="rank">${index + 1}</td>
           <td><strong>${row.municipio_nome}</strong><br><small>${row.macroregiao_saude || "n/d"}</small></td>
-          <td class="score">${P.formatNumber(row.score_prioridade_mvp, 3)}</td>
+          <td class="score">${P.formatNumber(row.score_padrao_0_100, 1)}</td>
           <td>${P.formatNumber(row.internacoes_residentes)}</td>
-          <td>${P.formatNumber(row.leitos_sus_media, 1)}</td>
-          <td><span class="${P.badgeClass(row.faixa_prioridade)}">${row.faixa_prioridade.replaceAll("_", " ")}</span></td>
+          <td>${P.formatNumber(row.leitos_sus_locais_registrados, 1)}</td>
+          <td><span class="priority-badge">${P.priorityLabel(row.faixa_prioridade)}</span></td>
         </tr>
       `,
     )
@@ -161,9 +161,9 @@ async function initBedPage() {
     const top = rows[0];
     const metrics = {
       "[data-top-municipality]": top?.municipio_nome,
-      "[data-top-score]": P.formatNumber(top?.score_prioridade_mvp, 3),
+      "[data-top-score]": P.formatNumber(top?.score_padrao_0_100, 1),
       "[data-top-demand]": P.formatNumber(top?.internacoes_residentes),
-      "[data-top-beds]": P.formatNumber(top?.leitos_sus_media, 1),
+      "[data-top-beds]": P.formatNumber(top?.leitos_sus_locais_registrados, 1),
     };
     Object.entries(metrics).forEach(([selector, value]) => {
       const node = document.querySelector(selector);

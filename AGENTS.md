@@ -6,12 +6,10 @@ Leia primeiro o `AGENTS.md` do diretório pai. Este repositório é a interface 
 
 Dashboard estático, preparado para GitHub Pages, que identifica e explica prioridades relativas de investigação e possível investimento em leitos SUS nos municípios do Rio Grande do Sul.
 
-O MVP cobre exatamente cinco tipos:
+O MVP ativo cobre três tipos:
 
-- `leitos_clinicos`;
-- `leitos_cirurgicos`;
-- `leitos_obstetricos`;
-- `leitos_pediatricos`;
+- `obstetrico`;
+- `pediatrico`;
 - `uti_adulto`.
 
 Não ativar as páginas de UTI neonatal, pediátrica, coronariana ou queimado como novas categorias. Elas são redirecionamentos e não fazem parte do escopo aprovado.
@@ -37,7 +35,7 @@ Algumas páginas temáticas somente redirecionam. Confirme seu conteúdo antes d
 
 ## Dados publicados
 
-O `rankings.json` atual possui 2.485 registros: 497 municípios × 5 tipos, com ano de referência 2025. Cada linha representa `municipio + ano + tipo_leito`.
+O `rankings.json` publicado possui 1.491 registros: 497 municípios × 3 tipos, com ano de referência 2025. Cada linha representa `municipio + ano + tipo_leito`.
 
 Preservar os nomes de campos consumidos pelo JavaScript. Os principais grupos são:
 
@@ -53,10 +51,10 @@ Os dados brutos e intermediários não pertencem a este repositório de publica�
 Pesos padrão definidos em `assets/js/app.js`:
 
 - demanda residente: 30%;
-- déficit de oferta SUS: 25%;
-- evasão hospitalar: 20%;
-- risco populacional: 15%;
-- crescimento da demanda: 10%.
+- déficit de oferta regional: 30%;
+- evasão intermunicipal observada: 15%;
+- tendência de crescimento da população-alvo: 15%;
+- risco populacional: 10%.
 
 O score é uma soma ponderada dos componentes normalizados. Pesos personalizados são salvos no `localStorage` sob a chave `prioriza-score-weights` e alteram a ordenação exibida no mapa. O score oficial continua sendo o cenário padrão.
 

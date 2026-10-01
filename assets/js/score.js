@@ -5,44 +5,44 @@ const DIMENSIONS = [
     key: "demanda",
     name: "Demanda residente",
     icon: "DR",
-    field: "demanda_residente_normalizada",
+    field: "demanda_residente_normalizado_0_100",
     defaultWeight: 30,
     short: "Pressão de internações da população residente.",
-    source: "SIH/SUS e IBGE",
+    source: "SIH/SUS e Ministério da Saúde / DATASUS",
     indicator: "Internações de residentes por mil pessoas da população-alvo.",
     raw: (row) => `${P.formatNumber(row.demanda_residente_taxa_por_1000_pop_alvo, 2)} por mil (${P.formatNumber(row.internacoes_residentes)} internações)`,
     explanation: "Mede a demanda dos moradores, mesmo quando a internação ocorreu em outro município.",
   },
   {
     key: "oferta",
-    name: "Déficit de oferta SUS",
+    name: "Déficit de oferta regional",
     icon: "DO",
-    field: "deficit_oferta_sus_normalizado",
-    defaultWeight: 25,
-    short: "Lacuna de leitos SUS ponderada pela demanda.",
-    source: "CNES, SIH/SUS e IBGE",
-    indicator: "Diferença frente à oferta estadual por mil, ponderada pela demanda residente.",
-    raw: (row) => `${P.formatNumber(row.leitos_sus_media, 1)} leitos SUS; ${P.formatNumber(row.oferta_sus_por_1000_pop_alvo, 2)} por mil`,
-    explanation: "Ausência local de leito não gera prioridade máxima sozinha: o déficit também depende da demanda residente.",
+    field: "deficit_oferta_regional_normalizado_0_100",
+    defaultWeight: 30,
+    short: "Pressão regional por leito e deslocamento até a oferta.",
+    source: "CNES, Ministério da Saúde / DATASUS e rotas",
+    indicator: "70% pressão regional por leito e 30% penalidade de deslocamento.",
+    raw: (row) => `${P.formatNumber(row.pressao_regional_por_leito, 1)} pessoas por leito; rota ${P.formatHours(row.duracao_rota_horas)}`,
+    explanation: "Considera a população-alvo dos municípios associados ao polo de referência e o tempo de viagem até a oferta.",
   },
   {
     key: "evasao",
-    name: "Evasão hospitalar",
+    name: "Evasão intermunicipal",
     icon: "EH",
-    field: "evasao_hospitalar_normalizada",
-    defaultWeight: 20,
+    field: "evasao_hospitalar_normalizada_0_100",
+    defaultWeight: 15,
     short: "Parcela de residentes internados fora do município.",
     source: "SIH/SUS",
     indicator: "Internações fora do município divididas pelas internações de residentes.",
-    raw: (row) => `${P.formatPercent(row.evasao_hospitalar_raw, 1)} (${P.formatNumber(row.internacoes_residentes_fora)} fora do município)`,
+    raw: (row) => `${P.formatPercent(row.evasao_hospitalar_percentual, 1)} (${P.formatNumber(row.internacoes_fora_municipio)} fora do município)`,
     explanation: "Preserva a distinção entre município de residência e município de internação.",
   },
   {
     key: "risco",
     name: "Risco populacional",
     icon: "RP",
-    field: "risco_populacional_normalizado",
-    defaultWeight: 15,
+    field: "risco_populacional_normalizado_0_100",
+    defaultWeight: 10,
     short: "Perfil populacional pertinente ao tipo de leito.",
     source: "IBGE",
     indicator: "Proporção do subgrupo de risco adequado ao tipo de leito.",
@@ -51,15 +51,15 @@ const DIMENSIONS = [
   },
   {
     key: "crescimento",
-    name: "Crescimento da demanda",
+    name: "Tendência de crescimento",
     icon: "CD",
-    field: "crescimento_demanda_normalizado",
-    defaultWeight: 10,
-    short: "Variação das internações frente ao ano anterior.",
-    source: "SIH/SUS",
-    indicator: "Crescimento anual das internações de residentes.",
-    raw: () => "O JSON público expõe o valor normalizado; consulte a tabela processada para o valor bruto.",
-    explanation: "Quando não há histórico anterior válido, o componente recebe valor neutro de 50/100.",
+    field: "pontuacao_normalizada_tendencia",
+    defaultWeight: 15,
+    short: "Crescimento histórico da população-alvo em cinco anos.",
+    source: "Ministério da Saúde / DATASUS",
+    indicator: "CAGR da população-alvo entre 2021 e 2025.",
+    raw: (row) => `CAGR ${P.formatPercent(row.taxa_anual_composta_percentual, 2)}; variação de ${P.formatNumber(row.variacao_absoluta_2021_2025)} pessoas`,
+    explanation: "A tendência histórica não é previsão. Faixas congeladas classificam sem crescimento, crescimento positivo e crescimento alto.",
   },
 ];
 
@@ -91,7 +91,7 @@ function normalizedValue(record, dimension) {
 }
 
 function contributionPoints(record, dimension) {
-  return normalizedValue(record, dimension) * clampWeight(currentWeights[dimension.key]);
+  return normalizedValue(record, dimension) * clampWeight(currentWeights[dimension.key]) / 100;
 }
 
 function simulatedScore(record) {
@@ -120,12 +120,12 @@ function detailHTML(dimension, record) {
       <div class="detail-item"><dt>Fonte dos dados</dt><dd>${dimension.source}</dd></div>
       <div class="detail-item"><dt>Indicador utilizado</dt><dd>${dimension.indicator}</dd></div>
       <div class="detail-item"><dt>Valor observado</dt><dd>${dimension.raw(record)}</dd></div>
-      <div class="detail-item"><dt>Normalização</dt><dd>Comparação min–máx entre municípios no mesmo ano e tipo de leito: ${P.normalizedText(normalized)}.</dd></div>
+      <div class="detail-item"><dt>Normalização</dt><dd>O valor publicado para este componente é ${P.normalizedText(normalized)}. Consulte a descrição do indicador para a regra específica.</dd></div>
       <div class="detail-item"><dt>Peso original da metodologia</dt><dd>${weightText(dimension.defaultWeight)}</dd></div>
       <div class="detail-item"><dt>Peso nesta simulação</dt><dd>${weightText(weight)}</dd></div>
       <div class="detail-item"><dt>Contribuição ponderada</dt><dd>${P.formatNumber(contribution, 2)} pontos no score simulado.</dd></div>
     </dl>
-    <div class="calc-box"><strong>Cálculo simulado:</strong> ${P.formatNumber(normalized * 100, 1)} × ${weightText(weight)} = ${P.formatNumber(contribution, 2)} pontos.</div>
+    <div class="calc-box"><strong>Cálculo simulado:</strong> ${P.formatNumber(normalized, 1)} × ${weightText(weight)} = ${P.formatNumber(contribution, 2)} pontos.</div>
   `;
 }
 
@@ -231,7 +231,7 @@ function render(record, typeRecords) {
         <button class="dimension-summary" type="button" data-key="${dimension.key}" aria-expanded="${dimension.key === expandedDimension}">
           <div class="dimension-top">
             <span class="dim-icon" aria-hidden="true">${dimension.icon}</span>
-            <b>${P.formatNumber(value * 100, 1)}</b>
+            <b>${P.formatNumber(value, 1)}</b>
           </div>
           <h3>${dimension.name}</h3>
           <p>${dimension.short}</p>
@@ -303,7 +303,7 @@ async function initScore() {
     function typeRecords() {
       return payload.records
         .filter((row) => row.tipo_leito === typeSelect.value)
-        .sort((a, b) => b.score_prioridade_mvp - a.score_prioridade_mvp || a.municipio_nome.localeCompare(b.municipio_nome, "pt-BR"));
+        .sort((a, b) => P.weightedScore(b, currentWeights) - P.weightedScore(a, currentWeights) || a.municipio_nome.localeCompare(b.municipio_nome, "pt-BR"));
     }
 
     function fillMunicipalities(preferredId) {
