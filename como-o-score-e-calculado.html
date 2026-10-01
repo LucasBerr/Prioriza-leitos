@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Explicação visual do cálculo do score do Prioriza Leitos.">
+    <title>Prioriza Leitos | Como o score é calculado</title>
+    <link rel="stylesheet" href="assets/css/styles.css">
+    <style>
+      .score-guide { max-width: 1180px; margin: 0 auto; padding: 26px; }
+      .guide-hero { background: linear-gradient(135deg, #0b5631, #187346); border-radius: 28px; color: #fff; padding: clamp(26px, 5vw, 54px); }
+      .guide-hero h1 { font-size: clamp(2rem, 4vw, 3.3rem); letter-spacing: -0.05em; margin: 0; }
+      .guide-hero p { color: #d9efdf; font-size: 1rem; line-height: 1.55; margin: 14px 0 0; max-width: 770px; }
+      .guide-eyebrow { color: #9ee2ac; font-size: .75rem; font-weight: 850; letter-spacing: .09em; text-transform: uppercase; }
+      .guide-nav { align-items: center; display: flex; justify-content: space-between; margin-bottom: 18px; }
+      .guide-nav a { color: var(--green-5); font-size: .84rem; font-weight: 800; text-decoration: none; }
+      .guide-nav a:hover { text-decoration: underline; }
+      .guide-section { margin-top: 34px; }
+      .guide-section > h2 { font-size: clamp(1.4rem, 2.5vw, 2rem); letter-spacing: -.035em; margin: 0; }
+      .guide-section > p { color: var(--muted); line-height: 1.55; margin: 8px 0 0; max-width: 810px; }
+      .pipeline { display: grid; gap: 10px; grid-template-columns: repeat(5, 1fr); margin-top: 18px; }
+      .pipeline-step { background: #fff; border: 1px solid var(--border); border-radius: 18px; min-height: 150px; padding: 16px; position: relative; }
+      .pipeline-step:not(:last-child)::after { color: var(--green-3); content: "→"; font-size: 1.6rem; font-weight: 900; position: absolute; right: -17px; top: 42%; z-index: 2; }
+      .pipeline-number { align-items: center; background: #e1f1e3; border-radius: 9px; color: var(--green-5); display: flex; font-size: .72rem; font-weight: 900; height: 28px; justify-content: center; width: 28px; }
+      .pipeline-step strong { display: block; font-size: .9rem; margin-top: 13px; }
+      .pipeline-step span { color: var(--muted); display: block; font-size: .73rem; line-height: 1.4; margin-top: 5px; }
+      .example-note { align-items: flex-start; background: #fff8e8; border: 1px solid #efd593; border-radius: 16px; color: #68531d; display: flex; gap: 10px; line-height: 1.45; margin-top: 18px; padding: 13px 15px; }
+      .example-note b { white-space: nowrap; }
+      .component-grid { display: grid; gap: 16px; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 20px; }
+      .component-guide { background: #fff; border: 1px solid var(--border); border-radius: 20px; overflow: hidden; }
+      .component-guide.wide { grid-column: 1 / -1; }
+      .component-header { align-items: center; background: #f6faf7; border-bottom: 1px solid var(--border); display: flex; gap: 11px; padding: 14px 16px; }
+      .component-icon { align-items: center; background: var(--green-5); border-radius: 11px; color: #fff; display: flex; font-size: .76rem; font-weight: 900; height: 33px; justify-content: center; width: 33px; }
+      .component-header h3 { font-size: 1rem; margin: 0; }
+      .component-header span { color: var(--muted); font-size: .7rem; margin-left: auto; }
+      .component-body { padding: 16px; }
+      .component-body > p { color: #40584d; font-size: .8rem; line-height: 1.45; margin: 0; }
+      .source-tag { background: #edf7ef; border-radius: 999px; color: var(--green-5); display: inline-block; font-size: .64rem; font-weight: 850; margin-top: 10px; padding: 5px 8px; }
+      .formula { background: #f7faf8; border: 1px dashed #bdd6c4; border-radius: 12px; color: #234435; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .72rem; line-height: 1.5; margin-top: 14px; padding: 10px; }
+      .mini-example { display: grid; gap: 8px; grid-template-columns: repeat(3, 1fr); margin-top: 12px; }
+      .mini-example div { background: #fbfdfb; border-left: 3px solid #5eb878; padding: 8px; }
+      .mini-example span { color: var(--muted); display: block; font-size: .58rem; font-weight: 800; text-transform: uppercase; }
+      .mini-example b { display: block; font-size: .79rem; margin-top: 3px; }
+      .component-result { align-items: center; background: #e9f5eb; border-radius: 12px; color: var(--green-5); display: flex; font-size: .8rem; font-weight: 850; justify-content: space-between; margin-top: 12px; padding: 10px; }
+      .component-result strong { font-size: 1.05rem; }
+      .decision-box { background: #f2f8f3; border: 1px solid #cce2d1; border-radius: 16px; font-size: .77rem; line-height: 1.45; margin-top: 14px; padding: 12px; }
+      .decision-box b { color: var(--green-5); }
+      .final-formula { background: #183126; border-radius: 24px; color: #fff; margin-top: 20px; padding: clamp(20px, 4vw, 34px); }
+      .final-formula h3 { font-size: 1.35rem; margin: 0; }
+      .final-formula > p { color: #cde4d3; line-height: 1.5; margin: 8px 0 0; }
+      .contribution-grid { display: grid; gap: 10px; grid-template-columns: repeat(5, 1fr); margin-top: 20px; }
+      .contribution { background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.18); border-radius: 14px; padding: 11px; }
+      .contribution span { color: #cde4d3; display: block; font-size: .63rem; line-height: 1.25; }
+      .contribution b { display: block; font-size: 1.05rem; margin-top: 6px; }
+      .score-total { align-items: center; border-top: 1px solid rgba(255,255,255,.22); display: flex; justify-content: space-between; margin-top: 18px; padding-top: 17px; }
+      .score-total span { color: #cde4d3; font-size: .82rem; }
+      .score-total strong { font-size: clamp(2rem, 5vw, 3.5rem); letter-spacing: -.06em; }
+      .limits { display: grid; gap: 10px; grid-template-columns: repeat(3, 1fr); margin-top: 18px; }
+      .limit { background: #fff; border: 1px solid var(--border); border-radius: 14px; color: #52685e; font-size: .75rem; line-height: 1.45; padding: 13px; }
+      .limit b { color: var(--text); display: block; font-size: .78rem; margin-bottom: 4px; }
+      @media (max-width: 820px) { .pipeline, .contribution-grid { grid-template-columns: 1fr 1fr; } .pipeline-step:not(:last-child)::after { display: none; } .component-grid, .limits { grid-template-columns: 1fr; } .component-guide.wide { grid-column: auto; } }
+      @media (max-width: 520px) { .score-guide { padding: 15px; } .pipeline, .mini-example, .contribution-grid { grid-template-columns: 1fr; } .guide-hero { border-radius: 20px; } }
+    </style>
+  </head>
+  <body>
+    <main class="score-guide">
+      <nav class="guide-nav" aria-label="Navegação"><a href="index.html">← Voltar ao mapa</a><a href="entenda-o-score.html">Simular pesos →</a></nav>
+
+      <header class="guide-hero">
+        <span class="guide-eyebrow">Guia visual · referência 2025</span>
+        <h1>Como o score é calculado</h1>
+        <p>O score organiza evidências para apoiar a investigação de onde pode haver prioridade relativa de análise e investimento em leitos SUS. Ele é uma soma transparente de cinco componentes e não recomenda automaticamente a abertura de leitos.</p>
+      </header>
+
+      <section class="guide-section">
+        <h2>O caminho dos dados</h2>
+        <p>Cada etapa deixa um resultado rastreável. O site recebe valores já calculados pelo motor analítico; ele não recalcula a metodologia no navegador.</p>
+        <div class="pipeline">
+          <div class="pipeline-step"><div class="pipeline-number">1</div><strong>Fontes oficiais</strong><span>SIH/SUS, CNES, Ministério da Saúde / DATASUS, SES/RS e IBGE.</span></div>
+          <div class="pipeline-step"><div class="pipeline-number">2</div><strong>Tratamento</strong><span>Padronização de códigos municipais, período, tipos de leito e validações.</span></div>
+          <div class="pipeline-step"><div class="pipeline-number">3</div><strong>Métricas</strong><span>Uma tabela por componente, município, tipo de leito e ano.</span></div>
+          <div class="pipeline-step"><div class="pipeline-number">4</div><strong>Normalização</strong><span>Cada componente chega a uma escala comparável de 0 a 100.</span></div>
+          <div class="pipeline-step"><div class="pipeline-number">5</div><strong>JSON e mapa</strong><span>O contrato publicado alimenta ranking, pop-up, cobertura e fluxos observados.</span></div>
+        </div>
+        <div class="example-note"><b>Exemplo didático:</b><span>Os municípios e números abaixo são fictícios. Eles existem apenas para tornar o cálculo fácil de acompanhar.</span></div>
+      </section>
+
+      <section class="guide-section">
+        <h2>Os cinco componentes</h2>
+        <p>Todos terminam em uma pontuação de 0 a 100. O peso define quanto cada componente participa do score final.</p>
+        <div class="component-grid">
+          <article class="component-guide">
+            <header class="component-header"><span class="component-icon">DR</span><h3>Demanda residente</h3><span>Peso 30%</span></header>
+            <div class="component-body"><p>Mede a quantidade de internações de residentes em relação à população-alvo do tipo de leito.</p><span class="source-tag">SIH/SUS + Ministério da Saúde / DATASUS</span>
+              <div class="formula">internações residentes ÷ população-alvo × 1.000</div>
+              <div class="mini-example"><div><span>Cidade fictícia</span><b>Vale Claro</b></div><div><span>Internações</span><b>160</b></div><div><span>População-alvo</span><b>20.000</b></div></div>
+              <div class="formula">160 ÷ 20.000 × 1.000 = 8 internações por mil</div><div class="component-result"><span>Após comparação com municípios do mesmo tipo</span><strong>60 / 100</strong></div>
+            </div>
+          </article>
+
+          <article class="component-guide">
+            <header class="component-header"><span class="component-icon">DO</span><h3>Déficit de oferta regional</h3><span>Peso 30%</span></header>
+            <div class="component-body"><p>Combina a pressão da população regional sobre os leitos do polo e o tempo até a oferta de referência.</p><span class="source-tag">CNES + população-alvo + rotas</span>
+              <div class="formula">70% pressão regional normalizada + 30% penalidade de deslocamento</div>
+              <div class="mini-example"><div><span>População regional</span><b>120.000</b></div><div><span>Leitos no polo</span><b>20</b></div><div><span>Tempo até a oferta</span><b>2 horas</b></div></div>
+              <div class="formula">120.000 ÷ 20 = 6.000 pessoas por leito<br>pressão: 70/100 · deslocamento: 33/100 (2h de teto de 6h)</div><div class="component-result"><span>0,70 × 70 + 0,30 × 33</span><strong>59 / 100</strong></div>
+            </div>
+          </article>
+
+          <article class="component-guide">
+            <header class="component-header"><span class="component-icon">EI</span><h3>Evasão ou dispersão regional</h3><span>Peso 15%</span></header>
+            <div class="component-body"><p>Com leito local, mede as internações realizadas em outro município. Sem leito local, mede as internações que seguiram além do polo de referência.</p><span class="source-tag">SIH/SUS · recorte de estabelecimentos no RS</span>
+              <div class="decision-box"><b>Se há leito local:</b> internações fora ÷ internações residentes.<br><b>Se não há leito local:</b> internações em outros destinos ÷ internações fora do município.</div>
+              <div class="mini-example"><div><span>Cidade fictícia</span><b>Campo Verde</b></div><div><span>Internações fora</span><b>40</b></div><div><span>Além do polo</span><b>20</b></div></div>
+              <div class="formula">20 ÷ 40 × 100 = 50%</div><div class="component-result"><span>Percentual observado já está na escala do score</span><strong>50 / 100</strong></div>
+            </div>
+          </article>
+
+          <article class="component-guide">
+            <header class="component-header"><span class="component-icon">TC</span><h3>Tendência de crescimento</h3><span>Peso 15%</span></header>
+            <div class="component-body"><p>Usa a taxa anual composta de crescimento da população-alvo entre 2021 e 2025. É tendência histórica, não previsão.</p><span class="source-tag">Ministério da Saúde / DATASUS · 2021–2025</span>
+              <div class="formula">CAGR = (população 2025 ÷ população 2021)<sup>1/4</sup> − 1</div>
+              <div class="mini-example"><div><span>2021</span><b>10.000</b></div><div><span>2025</span><b>10.816</b></div><div><span>CAGR</span><b>2,0% ao ano</b></div></div>
+              <div class="formula">Faixas congeladas por tipo: sem crescimento = 0 · positivo = 50 · no P80 positivo ou acima = 100</div><div class="component-result"><span>Exemplo: 2,0% está acima do corte alto de 1,6%</span><strong>100 / 100</strong></div>
+            </div>
+          </article>
+
+          <article class="component-guide wide">
+            <header class="component-header"><span class="component-icon">RP</span><h3>Risco populacional</h3><span>Peso 10%</span></header>
+            <div class="component-body"><p>Representa a proporção do grupo populacional pertinente ao tipo de leito. A proxy muda conforme UTI adulto, obstétrico ou pediátrico.</p><span class="source-tag">Ministério da Saúde / DATASUS · 2025</span>
+              <div class="mini-example"><div><span>Exemplo: população total</span><b>50.000</b></div><div><span>Grupo-alvo</span><b>40.000</b></div><div><span>Proporção</span><b>80%</b></div></div>
+              <div class="formula">40.000 ÷ 50.000 × 100 = 80%<br>Faixas congeladas por tipo: até a mediana = 0 · entre mediana e P80 = 50 · P80 ou acima = 100</div><div class="component-result"><span>Exemplo: mediana de 78% e P80 de 82%</span><strong>50 / 100</strong></div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="guide-section">
+        <h2>A soma ponderada</h2>
+        <p>O peso não altera o valor observado de um componente. Ele define sua contribuição para o resultado final.</p>
+        <div class="final-formula">
+          <h3>Exemplo completo: Município fictício “Vale Claro”</h3>
+          <p>Score = demanda × 30% + déficit × 30% + evasão/dispersão × 15% + tendência × 15% + risco × 10%</p>
+          <div class="contribution-grid">
+            <div class="contribution"><span>Demanda<br>60 × 30%</span><b>18,0</b></div>
+            <div class="contribution"><span>Déficit regional<br>59 × 30%</span><b>17,7</b></div>
+            <div class="contribution"><span>Dispersão<br>50 × 15%</span><b>7,5</b></div>
+            <div class="contribution"><span>Tendência<br>100 × 15%</span><b>15,0</b></div>
+            <div class="contribution"><span>Risco<br>50 × 10%</span><b>5,0</b></div>
+          </div>
+          <div class="score-total"><span>Score final de prioridade relativa</span><strong>63,2 / 100</strong></div>
+        </div>
+      </section>
+
+      <section class="guide-section">
+        <h2>Como interpretar com responsabilidade</h2>
+        <div class="limits">
+          <div class="limit"><b>É uma prioridade relativa</b>O score ajuda a ordenar investigação entre municípios do mesmo tipo de leito.</div>
+          <div class="limit"><b>Não é recomendação automática</b>Ele não confirma necessidade de implantação, ocupação, vaga disponível ou decisão clínica.</div>
+          <div class="limit"><b>Requer análise especializada</b>Os pesos são ajustáveis e ainda não foram validados por especialistas.</div>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

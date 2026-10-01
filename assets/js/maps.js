@@ -17,16 +17,16 @@ const COMPONENTS = [
   },
   {
     label: "Evasão intermunicipal", field: "evasao_hospitalar_normalizada_0_100", weight: "15%",
-    labelFor: (row) => row.situacao_evasao_no_score === "dispersao_fora_polo_referencia" ? "Dispersão fora do polo de referência" : "Evasão intermunicipal",
-    raw: (row) => row.situacao_evasao_no_score === "dispersao_fora_polo_referencia"
-      ? `${P.formatPercent(row.dispersao_fora_polo_referencia_percentual, 1)} · ${P.formatNumber(row.internacoes_fora_outros_destinos)} em outros destinos`
+    labelFor: (row) => row.situacao_evasao_no_score === "dispersao_ponderada_deslocamento_fora_polo" ? "Dispersão ponderada fora do polo" : "Evasão intermunicipal",
+    raw: (row) => row.situacao_evasao_no_score === "dispersao_ponderada_deslocamento_fora_polo"
+      ? `${P.formatNumber(row.dispersao_ponderada_deslocamento_normalizada_0_100, 1)}/100 · ${P.formatNumber(row.internacoes_fora_polo_elegiveis_3h)} internações elegíveis até 3h`
       : `${P.formatPercent(row.evasao_hospitalar_percentual, 1)} · ${P.formatNumber(row.internacoes_fora_municipio)} internações fora`,
     source: "SIH/SUS, estabelecimentos localizados no Rio Grande do Sul, 2025.",
-    calculation: (row) => row.situacao_evasao_no_score === "dispersao_fora_polo_referencia"
-      ? "Internações fora atendidas em outros destinos ÷ internações fora do município. Sem leito local, sair do município é esperado."
+    calculation: (row) => row.situacao_evasao_no_score === "dispersao_ponderada_deslocamento_fora_polo"
+      ? "Cada destino fora do polo em até 3h é ponderado pela parcela das internações residentes e pelo tempo adicional em relação ao polo."
       : "Internações de residentes realizadas fora do município ÷ internações de residentes.",
-    normalization: (row) => row.situacao_evasao_no_score === "dispersao_fora_polo_referencia"
-      ? "O percentual observado de dispersão já varia de 0 a 100."
+    normalization: (row) => row.situacao_evasao_no_score === "dispersao_ponderada_deslocamento_fora_polo"
+      ? "A soma das contribuições ponderadas já está no domínio de 0 a 100; destinos acima de 3h ficam fora da pontuação."
       : "O percentual observado já varia de 0 a 100. Sem internações residentes, o componente recebe 0.",
   },
   {
@@ -68,6 +68,14 @@ function markerStyle(id, selectedId, poleId, score = 0) {
 
 function referencePoleMarkerStyle() {
   return { radius: 8, color: "#b9500b", fillColor: "#f28a2e", fillOpacity: .96, weight: 3, bubblingMouseEvents: false };
+}
+
+function observedFlowStyle(admissions) {
+  return { color: "#d96a17", dashArray: "6 7", opacity: .74, weight: Math.min(5, 1.4 + Math.log10(Number(admissions) + 1)) };
+}
+
+function observedDestinationMarkerStyle(admissions) {
+  return { radius: Math.min(11, 5 + Math.log2(Number(admissions) + 1)), color: "#a94b0d", fillColor: "#f28a2e", fillOpacity: .95, weight: 2.3 };
 }
 
 function regionalCoverageStyle(feature, selectedId, poleId) {
@@ -122,7 +130,7 @@ function detailHTML(record, rank, total, weights, custom, records) {
     <section class="popup-info"><p class="section-title">Informações gerais</p><div class="popup-info-list"><div><span class="popup-icon">${icon("rank")}</span><p><b>Posição relativa</b>${rank}º de ${total}</p></div><div><span class="popup-icon">${icon("people")}</span><p><b>População-alvo</b>${P.formatNumber(record.populacao_alvo)} pessoas</p></div><div><span class="popup-icon">${icon("bed")}</span><p><b>Leitos SUS de ${P.typeLabel(record.tipo_leito)}</b>${P.formatNumber(record.leitos_sus_locais_registrados, 1)}</p></div><div><span class="popup-icon">${icon("hospital")}</span><p><b>Internações residentes</b>${P.formatNumber(record.internacoes_residentes)} · evasão ${P.formatPercent(record.evasao_hospitalar_percentual, 1)}</p></div></div></section>
     ${coverageHTML(record, records)}
     <p class="section-title popup-components-title">Componentes do score</p><div class="popup-components">${COMPONENTS.map((component) => componentHTML(record, component)).join("")}</div>
-    <a class="button primary popup-score-link" href="entenda-o-score.html?${P.scoreQuery(record)}">Entenda este score</a>${custom ? '<p class="popup-note"><strong>Pesos personalizados:</strong> este score usa os pesos salvos no simulador.</p>' : ""}<p class="popup-note">Referência: 2025. Prioridade relativa orienta investigação; não é recomendação automática de novos leitos.</p></div>`;
+    <a class="button primary popup-score-link" href="como-o-score-e-calculado.html?${P.scoreQuery(record)}">Entenda este score</a>${custom ? '<p class="popup-note"><strong>Pesos personalizados:</strong> este score usa os pesos salvos no simulador.</p>' : ""}<p class="popup-note">Referência: 2025. Prioridade relativa orienta investigação; não é recomendação automática de novos leitos.</p></div>`;
 }
 
 function buildMap(container) {
@@ -142,7 +150,7 @@ async function initMap() {
         return response.json();
       }),
     ]);
-    const records = payload.records; const typeSelect = document.querySelector("#bed-type"); const search = document.querySelector("#municipality-search"); const regionSelect = document.querySelector("#region-filter"); const yearSelect = document.querySelector("#year-filter"); const compactList = document.querySelector("#compact-list"); const typeChip = document.querySelector("#selected-type-chip");
+    const records = payload.records; const observedFlows = payload.fluxos_fora_polo_referencia || []; const typeSelect = document.querySelector("#bed-type"); const search = document.querySelector("#municipality-search"); const regionSelect = document.querySelector("#region-filter"); const yearSelect = document.querySelector("#year-filter"); const compactList = document.querySelector("#compact-list"); const typeChip = document.querySelector("#selected-type-chip");
     container.classList.remove("loading-state"); container.textContent = "";
     const map = buildMap(container);
     const markerLayer = L.layerGroup().addTo(map);
@@ -151,6 +159,7 @@ async function initMap() {
       style: (feature) => regionalCoverageStyle(feature, selected?.municipio_id, activePoleId),
     }).addTo(map);
     const referencePoleLayer = L.layerGroup().addTo(map);
+    const observedFlowLayer = L.layerGroup().addTo(map);
     const featureByMunicipality = new Map(municipalities.features.map((feature) => [String(feature.properties.codarea), feature]));
     const panel = document.createElement("aside"); panel.className = "map-selection-popup"; panel.setAttribute("aria-label", "Município selecionado"); container.append(panel); L.DomEvent.disableClickPropagation(panel); L.DomEvent.disableScrollPropagation(panel);
     const params = new URLSearchParams(window.location.search); const savedWeights = P.loadScoreWeights(); const custom = P.hasCustomScoreWeights(savedWeights); let visible = []; let selected = null; let activePoleId = null; let markers = new Map(); let initial = false;
@@ -161,6 +170,7 @@ async function initMap() {
       activePoleId = null;
       regionalCoverageLayer.clearLayers();
       referencePoleLayer.clearLayers();
+      observedFlowLayer.clearLayers();
     };
     const clear = () => { selected = null; clearRegionalCoverage(); panel.classList.remove("is-open"); panel.replaceChildren(); updateStyles(); };
     const updateStyles = () => {
@@ -186,7 +196,20 @@ async function initMap() {
         }
       }
     };
-    const select = (record) => { if (!record) return; selected = record; renderRegionalCoverage(record); const listed = typeRecords(); const rank = listed.findIndex((row) => row.municipio_id === record.municipio_id) + 1; panel.innerHTML = `<button class="map-popup-close" type="button" aria-label="Fechar município selecionado">×</button>${detailHTML(record, rank, listed.length, savedWeights, custom, records)}`; panel.classList.add("is-open"); updateStyles(); };
+    const renderObservedFlows = (record) => {
+      const flows = observedFlows.filter((flow) => String(flow.municipio_origem_id) === String(record.municipio_id) && flow.tipo_leito === record.tipo_leito);
+      flows.forEach((flow) => {
+        const destination = records.find((item) => item.tipo_leito === record.tipo_leito && String(item.municipio_id) === String(flow.municipio_destino_id));
+        if (!destination) return;
+        L.polyline([[record.latitude, record.longitude], [destination.latitude, destination.longitude]], {
+          ...observedFlowStyle(flow.internacoes_observadas), interactive: false,
+        }).addTo(observedFlowLayer);
+        L.circleMarker([destination.latitude, destination.longitude], observedDestinationMarkerStyle(flow.internacoes_observadas))
+          .bindTooltip(`<strong>${destination.municipio_nome}</strong><br>${P.formatNumber(flow.internacoes_observadas)} internações observadas fora do polo`, { direction: "top" })
+          .addTo(observedFlowLayer);
+      });
+    };
+    const select = (record) => { if (!record) return; selected = record; renderRegionalCoverage(record); renderObservedFlows(record); const listed = typeRecords(); const rank = listed.findIndex((row) => row.municipio_id === record.municipio_id) + 1; panel.innerHTML = `<button class="map-popup-close" type="button" aria-label="Fechar município selecionado">×</button>${detailHTML(record, rank, listed.length, savedWeights, custom, records)}`; panel.classList.add("is-open"); updateStyles(); };
     panel.addEventListener("click", (event) => { event.stopPropagation(); if (event.target.closest(".map-popup-close")) return clear(); const button = event.target.closest(".metric-help-button"); if (!button) return; button.setAttribute("aria-expanded", String(button.getAttribute("aria-expanded") !== "true")); });
     const compact = () => { compactList.innerHTML = visible.slice(0, 5).map((row) => `<button class="compact-item${row.municipio_id === selected?.municipio_id ? " active" : ""}" type="button" data-id="${row.municipio_id}"><span>${row.municipio_nome}</span><b>${P.formatNumber(P.weightedScore(row, savedWeights), 1)}</b></button>`).join("") || '<div class="empty-state">Nenhum município encontrado.</div>'; compactList.querySelectorAll("button").forEach((button) => button.addEventListener("click", () => { const record = visible.find((row) => row.municipio_id === button.dataset.id); const marker = markers.get(button.dataset.id); if (record && marker) map.setView(marker.getLatLng(), 9, { animate: false }); select(record); })); };
     const render = () => { clear(); const query = search.value.trim().toLocaleLowerCase("pt-BR"); visible = typeRecords().filter((row) => (!query || row.municipio_nome.toLocaleLowerCase("pt-BR").includes(query)) && (!regionSelect.value || row.macroregiao_saude === regionSelect.value)); typeChip.textContent = P.typeLabel(typeSelect.value); markerLayer.clearLayers(); markers = new Map(); visible.forEach((row) => { const score = P.weightedScore(row, savedWeights); const marker = L.circleMarker([row.latitude, row.longitude], { ...markerStyle(row.municipio_id, selected?.municipio_id, activePoleId, score), priorityScore: score }); marker.bindTooltip(`<strong>${row.municipio_nome}</strong><br>Score: ${P.formatNumber(score, 1)}`, { direction: "top" }); marker.on("click", () => select(row)); marker.addTo(markerLayer); markers.set(row.municipio_id, marker); }); compact(); if (!initial) { initial = true; const record = visible.find((row) => row.municipio_id === params.get("municipio")); if (record) select(record); } };

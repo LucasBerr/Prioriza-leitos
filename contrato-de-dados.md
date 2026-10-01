@@ -28,6 +28,8 @@ Para desenhar a cobertura regional no mapa, a interface também consome `data/mu
 | Risco | `populacao_total`, `populacao_alvo_proxy`, `valor_bruto_percentual`, `faixa_risco_populacional`, `risco_populacional_normalizado_0_100` | card de risco |
 | Tendência | `populacao_alvo_2021`, `populacao_alvo_2025`, `variacao_absoluta_2021_2025`, `variacao_percentual_2021_2025`, `taxa_anual_composta_percentual`, `base_populacional_pequena`, `classificacao_tendencia`, `pontuacao_normalizada_tendencia` | card de tendência e auditoria |
 
+`fluxos_fora_polo_referencia` é uma coleção separada de fluxos agregados. Cada linha contém `municipio_origem_id`, `municipio_destino_id`, `tipo_leito`, `ano` e `internacoes_observadas`. Ela inclui somente internações registradas fora do município e fora do polo estimado para origens sem leito SUS local. A interface desenha linhas analíticas entre as sedes municipais e destaca o município de destino; essas linhas não representam a rota percorrida.
+
 ## Pesos padrão v1
 
 - Demanda residente: 30%.

@@ -27,17 +27,17 @@ const DIMENSIONS = [
   },
   {
     key: "evasao",
-    name: "Evasão intermunicipal / dispersão regional",
+    name: "Evasão intermunicipal / dispersão ponderada",
     icon: "EH",
     field: "evasao_hospitalar_normalizada_0_100",
     defaultWeight: 15,
-    short: "Evasão local ou dispersão além da oferta regional estimada.",
+    short: "Evasão local ou dispersão além do polo, ponderada pelo deslocamento.",
     source: "SIH/SUS",
     indicator: "Com leito local: internações fora ÷ internações residentes. Sem leito local: outros destinos ÷ internações fora.",
-    raw: (row) => row.situacao_evasao_no_score === "dispersao_fora_polo_referencia"
-      ? `${P.formatPercent(row.dispersao_fora_polo_referencia_percentual, 1)} (${P.formatNumber(row.internacoes_fora_outros_destinos)} em outros destinos)`
+    raw: (row) => row.situacao_evasao_no_score === "dispersao_ponderada_deslocamento_fora_polo"
+      ? `${P.formatNumber(row.dispersao_ponderada_deslocamento_normalizada_0_100, 1)}/100 (${P.formatNumber(row.internacoes_fora_polo_elegiveis_3h)} internações elegíveis até 3h)`
       : `${P.formatPercent(row.evasao_hospitalar_percentual, 1)} (${P.formatNumber(row.internacoes_fora_municipio)} fora do município)`,
-    explanation: "Sem oferta local, sair do município é esperado; o score passa a observar a dispersão além do polo de referência estimado.",
+    explanation: "Sem oferta local, sair do município é esperado; o score observa os destinos além do polo e dá maior peso a deslocamentos adicionais mais longos, até o teto de 3 horas.",
   },
   {
     key: "risco",
@@ -68,8 +68,6 @@ const DIMENSIONS = [
 const DEFAULT_WEIGHTS = Object.fromEntries(DIMENSIONS.map((dimension) => [dimension.key, dimension.defaultWeight]));
 const SIMULATION_TOLERANCE = 0.01;
 
-let selectedDimension = DIMENSIONS[0].key;
-let expandedDimension = DIMENSIONS[0].key;
 let currentRecord;
 let currentTypeRecords = [];
 let currentWeights = P.loadScoreWeights();
@@ -102,33 +100,6 @@ function simulatedScore(record) {
 
 function isWeightSumValid() {
   return Math.abs(totalWeight() - 100) <= SIMULATION_TOLERANCE;
-}
-
-function detailHTML(dimension, record) {
-  const normalized = normalizedValue(record, dimension);
-  const weight = clampWeight(currentWeights[dimension.key]);
-  const contribution = contributionPoints(record, dimension);
-  return `
-    <div class="side-panel-header">
-      <div class="big-icon" aria-hidden="true">${dimension.icon}</div>
-      <div>
-        <p class="section-title">Componente selecionado</p>
-        <h2>${dimension.name}</h2>
-        <span class="score-badge">Normalizado: ${P.normalizedText(normalized)}</span>
-      </div>
-    </div>
-    <dl class="detail-list">
-      <div class="detail-item"><dt>O que representa</dt><dd>${dimension.explanation}</dd></div>
-      <div class="detail-item"><dt>Fonte dos dados</dt><dd>${dimension.source}</dd></div>
-      <div class="detail-item"><dt>Indicador utilizado</dt><dd>${dimension.indicator}</dd></div>
-      <div class="detail-item"><dt>Valor observado</dt><dd>${dimension.raw(record)}</dd></div>
-      <div class="detail-item"><dt>Normalização</dt><dd>O valor publicado para este componente é ${P.normalizedText(normalized)}. Consulte a descrição do indicador para a regra específica.</dd></div>
-      <div class="detail-item"><dt>Peso original da metodologia</dt><dd>${weightText(dimension.defaultWeight)}</dd></div>
-      <div class="detail-item"><dt>Peso nesta simulação</dt><dd>${weightText(weight)}</dd></div>
-      <div class="detail-item"><dt>Contribuição ponderada</dt><dd>${P.formatNumber(contribution, 2)} pontos no score simulado.</dd></div>
-    </dl>
-    <div class="calc-box"><strong>Cálculo simulado:</strong> ${P.formatNumber(normalized, 1)} × ${weightText(weight)} = ${P.formatNumber(contribution, 2)} pontos.</div>
-  `;
 }
 
 function calculationDiagramHTML(record) {
@@ -216,8 +187,6 @@ function updateSimulationView(record) {
 
   document.querySelector("#calculation-diagram").innerHTML = calculationDiagramHTML(record);
 
-  const dimension = DIMENSIONS.find((item) => item.key === selectedDimension) || DIMENSIONS[0];
-  document.querySelector("#dimension-detail").innerHTML = detailHTML(dimension, record);
 }
 
 function render(record, typeRecords) {
@@ -229,16 +198,15 @@ function render(record, typeRecords) {
     const weight = clampWeight(currentWeights[dimension.key]);
     const contribution = contributionPoints(record, dimension);
     return `
-      <article class="dimension-card ${dimension.key === selectedDimension ? "is-active" : ""} ${dimension.key === expandedDimension ? "is-expanded" : ""}" data-key="${dimension.key}">
-        <button class="dimension-summary" type="button" data-key="${dimension.key}" aria-expanded="${dimension.key === expandedDimension}">
+      <article class="dimension-card" data-key="${dimension.key}">
+        <div class="dimension-summary">
           <div class="dimension-top">
             <span class="dim-icon" aria-hidden="true">${dimension.icon}</span>
             <b>${P.formatNumber(value, 1)}</b>
           </div>
           <h3>${dimension.name}</h3>
-          <p>${dimension.short}</p>
-          <span class="mobile-expand-hint">Toque para ajustar o peso</span>
-        </button>
+          <p>Valor normalizado do município.</p>
+        </div>
         <div class="dimension-metrics" aria-label="Resumo de ${dimension.name}">
           <div><span>Normalizado</span><strong>${P.normalizedText(value)}</strong></div>
           <div><span>Peso atual</span><strong class="weight-current">${weightText(weight)}</strong></div>
@@ -266,12 +234,6 @@ function render(record, typeRecords) {
   document.querySelector("#score-year").textContent = record.ano;
   document.querySelector("#score-rank").textContent = `${typeRecords.findIndex((row) => row.municipio_id === record.municipio_id) + 1}º de ${typeRecords.length}`;
   document.querySelector("#back-to-map").href = `index.html?${P.scoreQuery(record)}`;
-
-  cards.querySelectorAll(".dimension-summary").forEach((button) => button.addEventListener("click", () => {
-    selectedDimension = button.dataset.key;
-    expandedDimension = expandedDimension === button.dataset.key ? "" : button.dataset.key;
-    render(currentRecord, currentTypeRecords);
-  }));
 
   cards.querySelectorAll(".weight-slider, .weight-number").forEach((input) => input.addEventListener("input", (event) => {
     currentWeights[event.target.dataset.key] = clampWeight(event.target.value);
