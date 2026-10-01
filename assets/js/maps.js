@@ -17,10 +17,17 @@ const COMPONENTS = [
   },
   {
     label: "Evasão intermunicipal", field: "evasao_hospitalar_normalizada_0_100", weight: "15%",
-    raw: (row) => `${P.formatPercent(row.evasao_hospitalar_percentual, 1)} · ${P.formatNumber(row.internacoes_fora_municipio)} internações fora`,
+    labelFor: (row) => row.situacao_evasao_no_score === "dispersao_fora_polo_referencia" ? "Dispersão fora do polo de referência" : "Evasão intermunicipal",
+    raw: (row) => row.situacao_evasao_no_score === "dispersao_fora_polo_referencia"
+      ? `${P.formatPercent(row.dispersao_fora_polo_referencia_percentual, 1)} · ${P.formatNumber(row.internacoes_fora_outros_destinos)} em outros destinos`
+      : `${P.formatPercent(row.evasao_hospitalar_percentual, 1)} · ${P.formatNumber(row.internacoes_fora_municipio)} internações fora`,
     source: "SIH/SUS, estabelecimentos localizados no Rio Grande do Sul, 2025.",
-    calculation: "Internações de residentes realizadas fora do município ÷ internações de residentes.",
-    normalization: "O percentual observado já varia de 0 a 100. Sem internações residentes, o componente recebe 0.",
+    calculation: (row) => row.situacao_evasao_no_score === "dispersao_fora_polo_referencia"
+      ? "Internações fora atendidas em outros destinos ÷ internações fora do município. Sem leito local, sair do município é esperado."
+      : "Internações de residentes realizadas fora do município ÷ internações de residentes.",
+    normalization: (row) => row.situacao_evasao_no_score === "dispersao_fora_polo_referencia"
+      ? "O percentual observado de dispersão já varia de 0 a 100."
+      : "O percentual observado já varia de 0 a 100. Sem internações residentes, o componente recebe 0.",
   },
   {
     label: "Tendência de crescimento", field: "pontuacao_normalizada_tendencia", weight: "15%",
@@ -46,6 +53,34 @@ function scoreColor(score) {
   return "#d7f0d5";
 }
 
+function markerStyle(id, selectedId, poleId, score = 0) {
+  const isPole = String(id) === String(poleId);
+  const isSelected = String(id) === String(selectedId);
+  return {
+    radius: 4 + Number(score || 0) / 100 * 7,
+    color: isPole ? "#b9500b" : isSelected ? "#183126" : "#fff",
+    fillColor: isPole ? "#f28a2e" : isSelected ? "#0b5631" : scoreColor(Number(score || 0)),
+    fillOpacity: .92,
+    weight: isPole || isSelected ? 3 : 1.5,
+    bubblingMouseEvents: false,
+  };
+}
+
+function referencePoleMarkerStyle() {
+  return { radius: 8, color: "#b9500b", fillColor: "#f28a2e", fillOpacity: .96, weight: 3, bubblingMouseEvents: false };
+}
+
+function regionalCoverageStyle(feature, selectedId, poleId) {
+  const municipalityId = String(feature.properties.codarea);
+  if (municipalityId === String(poleId)) {
+    return { color: "#d86114", fillColor: "#f6a44e", fillOpacity: .25, weight: 2.4 };
+  }
+  if (municipalityId === String(selectedId)) {
+    return { color: "#0b5631", fillColor: "#8ecfa0", fillOpacity: .28, weight: 2.4 };
+  }
+  return { color: "#5965e8", fillColor: "#8791f2", fillOpacity: .18, weight: 1.5 };
+}
+
 function icon(name) {
   const paths = {
     rank: "M12 3v12m0-12 4 4m-4-4-4 4M5 21h14M7 17h10",
@@ -60,9 +95,9 @@ function componentHTML(record, component) {
   const normalized = Number(record[component.field] || 0);
   return `
     <article class="popup-component">
-      <div class="popup-component-head"><strong>${component.label}</strong><span class="component-weight">${component.weight}</span>
+      <div class="popup-component-head"><strong>${component.labelFor ? component.labelFor(record) : component.label}</strong><span class="component-weight">${component.weight}</span>
         <div class="metric-help"><button class="metric-help-button" type="button" aria-expanded="false" aria-controls="help-${component.field}" aria-label="Explicar ${component.label}">?</button>
-          <div class="metric-help-content" id="help-${component.field}"><p><b>Origem:</b> ${component.source}</p><p><b>Cálculo:</b> ${component.calculation}</p><p><b>Normalização:</b> ${component.normalization}</p></div>
+          <div class="metric-help-content" id="help-${component.field}"><p><b>Origem:</b> ${component.source}</p><p><b>Cálculo:</b> ${typeof component.calculation === "function" ? component.calculation(record) : component.calculation}</p><p><b>Normalização:</b> ${typeof component.normalization === "function" ? component.normalization(record) : component.normalization}</p></div>
         </div>
       </div>
       <div class="popup-component-values"><div><span>Valor observado</span><b>${component.raw(record)}</b></div><div><span>Score</span><b>${P.normalizedText(normalized)}</b></div></div>
@@ -100,19 +135,61 @@ async function initMap() {
   const container = document.querySelector("#priority-map");
   if (!container || !window.L) return;
   try {
-    const payload = await P.loadRankings(); const records = payload.records; const typeSelect = document.querySelector("#bed-type"); const search = document.querySelector("#municipality-search"); const regionSelect = document.querySelector("#region-filter"); const yearSelect = document.querySelector("#year-filter"); const compactList = document.querySelector("#compact-list"); const typeChip = document.querySelector("#selected-type-chip");
+    const [payload, municipalities] = await Promise.all([
+      P.loadRankings(),
+      fetch("data/municipios_limites.geojson").then((response) => {
+        if (!response.ok) throw new Error(`Falha ao carregar geografia: ${response.status}`);
+        return response.json();
+      }),
+    ]);
+    const records = payload.records; const typeSelect = document.querySelector("#bed-type"); const search = document.querySelector("#municipality-search"); const regionSelect = document.querySelector("#region-filter"); const yearSelect = document.querySelector("#year-filter"); const compactList = document.querySelector("#compact-list"); const typeChip = document.querySelector("#selected-type-chip");
     container.classList.remove("loading-state"); container.textContent = "";
-    const map = buildMap(container); const markerLayer = L.layerGroup().addTo(map); const panel = document.createElement("aside"); panel.className = "map-selection-popup"; panel.setAttribute("aria-label", "Município selecionado"); container.append(panel); L.DomEvent.disableClickPropagation(panel); L.DomEvent.disableScrollPropagation(panel);
-    const params = new URLSearchParams(window.location.search); const savedWeights = P.loadScoreWeights(); const custom = P.hasCustomScoreWeights(savedWeights); let visible = []; let selected = null; let markers = new Map(); let initial = false;
+    const map = buildMap(container);
+    const markerLayer = L.layerGroup().addTo(map);
+    const regionalCoverageLayer = L.geoJSON(null, {
+      interactive: false,
+      style: (feature) => regionalCoverageStyle(feature, selected?.municipio_id, activePoleId),
+    }).addTo(map);
+    const referencePoleLayer = L.layerGroup().addTo(map);
+    const featureByMunicipality = new Map(municipalities.features.map((feature) => [String(feature.properties.codarea), feature]));
+    const panel = document.createElement("aside"); panel.className = "map-selection-popup"; panel.setAttribute("aria-label", "Município selecionado"); container.append(panel); L.DomEvent.disableClickPropagation(panel); L.DomEvent.disableScrollPropagation(panel);
+    const params = new URLSearchParams(window.location.search); const savedWeights = P.loadScoreWeights(); const custom = P.hasCustomScoreWeights(savedWeights); let visible = []; let selected = null; let activePoleId = null; let markers = new Map(); let initial = false;
     Object.entries(P.BED_TYPES).forEach(([value, label]) => typeSelect.add(new Option(label, value))); typeSelect.value = P.BED_TYPES[params.get("tipo")] ? params.get("tipo") : "uti_adulto"; yearSelect.add(new Option(String(payload.metadata.ano), String(payload.metadata.ano))); document.querySelector("[data-update-year]").textContent = `ano ${payload.metadata.ano}`;
     [...new Set(records.map((row) => row.macroregiao_saude).filter(Boolean))].sort((a, b) => a.localeCompare(b, "pt-BR")).forEach((region) => regionSelect.add(new Option(region, region)));
     const typeRecords = () => records.filter((row) => row.tipo_leito === typeSelect.value).sort((a, b) => P.weightedScore(b, savedWeights) - P.weightedScore(a, savedWeights) || a.municipio_nome.localeCompare(b.municipio_nome, "pt-BR"));
-    const clear = () => { selected = null; panel.classList.remove("is-open"); panel.replaceChildren(); updateStyles(); };
-    const updateStyles = () => { compactList.querySelectorAll(".compact-item").forEach((item) => item.classList.toggle("active", item.dataset.id === selected?.municipio_id)); markers.forEach((marker, id) => marker.setStyle({ weight: id === selected?.municipio_id ? 3 : 1.5, color: id === selected?.municipio_id ? "#183126" : "#fff" })); };
-    const select = (record) => { if (!record) return; selected = record; const listed = typeRecords(); const rank = listed.findIndex((row) => row.municipio_id === record.municipio_id) + 1; panel.innerHTML = `<button class="map-popup-close" type="button" aria-label="Fechar município selecionado">×</button>${detailHTML(record, rank, listed.length, savedWeights, custom, records)}`; panel.classList.add("is-open"); updateStyles(); };
+    const clearRegionalCoverage = () => {
+      activePoleId = null;
+      regionalCoverageLayer.clearLayers();
+      referencePoleLayer.clearLayers();
+    };
+    const clear = () => { selected = null; clearRegionalCoverage(); panel.classList.remove("is-open"); panel.replaceChildren(); updateStyles(); };
+    const updateStyles = () => {
+      compactList.querySelectorAll(".compact-item").forEach((item) => item.classList.toggle("active", item.dataset.id === selected?.municipio_id));
+      markers.forEach((marker, id) => marker.setStyle(markerStyle(id, selected?.municipio_id, activePoleId, marker.options.priorityScore)));
+      regionalCoverageLayer.setStyle((feature) => regionalCoverageStyle(feature, selected?.municipio_id, activePoleId));
+    };
+    const renderRegionalCoverage = (record) => {
+      clearRegionalCoverage();
+      if (!record.oferta_acessivel_24h || !record.polo_municipio_id) return;
+      activePoleId = String(record.polo_municipio_id);
+      const associatedMunicipalities = new Set(records
+        .filter((item) => item.tipo_leito === record.tipo_leito && String(item.polo_municipio_id) === activePoleId)
+        .map((item) => String(item.municipio_id)));
+      const features = [...associatedMunicipalities].map((id) => featureByMunicipality.get(id)).filter(Boolean);
+      regionalCoverageLayer.addData({ type: "FeatureCollection", features });
+      if (!markers.has(activePoleId)) {
+        const pole = records.find((item) => item.tipo_leito === record.tipo_leito && String(item.municipio_id) === activePoleId);
+        if (pole) {
+          L.circleMarker([pole.latitude, pole.longitude], referencePoleMarkerStyle())
+            .bindTooltip(`<strong>${pole.municipio_nome}</strong><br>Oferta regional de referência`, { direction: "top" })
+            .addTo(referencePoleLayer);
+        }
+      }
+    };
+    const select = (record) => { if (!record) return; selected = record; renderRegionalCoverage(record); const listed = typeRecords(); const rank = listed.findIndex((row) => row.municipio_id === record.municipio_id) + 1; panel.innerHTML = `<button class="map-popup-close" type="button" aria-label="Fechar município selecionado">×</button>${detailHTML(record, rank, listed.length, savedWeights, custom, records)}`; panel.classList.add("is-open"); updateStyles(); };
     panel.addEventListener("click", (event) => { event.stopPropagation(); if (event.target.closest(".map-popup-close")) return clear(); const button = event.target.closest(".metric-help-button"); if (!button) return; button.setAttribute("aria-expanded", String(button.getAttribute("aria-expanded") !== "true")); });
     const compact = () => { compactList.innerHTML = visible.slice(0, 5).map((row) => `<button class="compact-item${row.municipio_id === selected?.municipio_id ? " active" : ""}" type="button" data-id="${row.municipio_id}"><span>${row.municipio_nome}</span><b>${P.formatNumber(P.weightedScore(row, savedWeights), 1)}</b></button>`).join("") || '<div class="empty-state">Nenhum município encontrado.</div>'; compactList.querySelectorAll("button").forEach((button) => button.addEventListener("click", () => { const record = visible.find((row) => row.municipio_id === button.dataset.id); const marker = markers.get(button.dataset.id); if (record && marker) map.setView(marker.getLatLng(), 9, { animate: false }); select(record); })); };
-    const render = () => { clear(); const query = search.value.trim().toLocaleLowerCase("pt-BR"); visible = typeRecords().filter((row) => (!query || row.municipio_nome.toLocaleLowerCase("pt-BR").includes(query)) && (!regionSelect.value || row.macroregiao_saude === regionSelect.value)); typeChip.textContent = P.typeLabel(typeSelect.value); markerLayer.clearLayers(); markers = new Map(); visible.forEach((row) => { const score = P.weightedScore(row, savedWeights); const marker = L.circleMarker([row.latitude, row.longitude], { radius: 4 + score / 100 * 7, color: "#fff", fillColor: scoreColor(score), fillOpacity: .88, weight: 1.5, bubblingMouseEvents: false }); marker.bindTooltip(`<strong>${row.municipio_nome}</strong><br>Score: ${P.formatNumber(score, 1)}`, { direction: "top" }); marker.on("click", () => select(row)); marker.addTo(markerLayer); markers.set(row.municipio_id, marker); }); compact(); if (!initial) { initial = true; const record = visible.find((row) => row.municipio_id === params.get("municipio")); if (record) select(record); } };
+    const render = () => { clear(); const query = search.value.trim().toLocaleLowerCase("pt-BR"); visible = typeRecords().filter((row) => (!query || row.municipio_nome.toLocaleLowerCase("pt-BR").includes(query)) && (!regionSelect.value || row.macroregiao_saude === regionSelect.value)); typeChip.textContent = P.typeLabel(typeSelect.value); markerLayer.clearLayers(); markers = new Map(); visible.forEach((row) => { const score = P.weightedScore(row, savedWeights); const marker = L.circleMarker([row.latitude, row.longitude], { ...markerStyle(row.municipio_id, selected?.municipio_id, activePoleId, score), priorityScore: score }); marker.bindTooltip(`<strong>${row.municipio_nome}</strong><br>Score: ${P.formatNumber(score, 1)}`, { direction: "top" }); marker.on("click", () => select(row)); marker.addTo(markerLayer); markers.set(row.municipio_id, marker); }); compact(); if (!initial) { initial = true; const record = visible.find((row) => row.municipio_id === params.get("municipio")); if (record) select(record); } };
     map.on("click", clear); document.addEventListener("keydown", (event) => { if (event.key === "Escape" && selected) clear(); }); typeSelect.addEventListener("change", () => { search.value = ""; render(); }); regionSelect.addEventListener("change", render); search.addEventListener("input", render); render();
   } catch (error) { console.error(error); container.textContent = "Não foi possível carregar os dados do mapa."; }
 }

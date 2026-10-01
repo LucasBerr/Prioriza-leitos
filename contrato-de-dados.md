@@ -2,6 +2,8 @@
 
 O dashboard consome `data/rankings.json`, produzido pelo motor analítico e publicado manualmente neste repositório. Não há integração em tempo de execução entre os dois projetos.
 
+Para desenhar a cobertura regional no mapa, a interface também consome `data/municipios_limites.geojson`: a malha municipal do IBGE 2022 publicada como artefato estático. O arquivo `data/municipios.geojson` contém somente pontos e permanece destinado aos consumidores que precisam dessa representação.
+
 ## Escopo publicado
 
 - Referência: 2025.
@@ -22,7 +24,7 @@ O dashboard consome `data/rankings.json`, produzido pelo motor analítico e publ
 | Score | `score_padrao_0_100`, `posicao_relativa_por_tipo`, `faixa_prioridade` | anel de score, ranking e faixa |
 | Demanda | `internacoes_residentes`, `populacao_alvo`, `demanda_residente_taxa_por_1000_pop_alvo`, `demanda_residente_normalizado_0_100` | resumo e card de demanda |
 | Cobertura regional | `leitos_sus_locais_registrados`, `polo_municipio_id`, `polo_e_municipio_origem`, `municipios_associados_polo`, `populacao_alvo_regional`, `leitos_sus_polo_acessiveis`, `pressao_regional_por_leito`, `duracao_rota_horas`, `oferta_acessivel_24h`, `deficit_oferta_regional_normalizado_0_100` | bloco de cobertura e card de déficit |
-| Evasão | `evasao_hospitalar_percentual`, `internacoes_fora_municipio`, `internacoes_locais`, `possui_denominador`, `concentracao_polo_referencia_percentual`, `dispersao_fora_polo_referencia_percentual`, `evasao_hospitalar_normalizada_0_100` | resumo e card de evasão |
+| Evasão | `evasao_hospitalar_percentual`, `internacoes_fora_municipio`, `internacoes_locais`, `possui_denominador`, `concentracao_polo_referencia_percentual`, `dispersao_fora_polo_referencia_percentual`, `situacao_evasao_no_score`, `evasao_hospitalar_normalizada_0_100` | resumo e card de evasão; sem leito local, o score usa dispersão fora do polo de referência |
 | Risco | `populacao_total`, `populacao_alvo_proxy`, `valor_bruto_percentual`, `faixa_risco_populacional`, `risco_populacional_normalizado_0_100` | card de risco |
 | Tendência | `populacao_alvo_2021`, `populacao_alvo_2025`, `variacao_absoluta_2021_2025`, `variacao_percentual_2021_2025`, `taxa_anual_composta_percentual`, `base_populacional_pequena`, `classificacao_tendencia`, `pontuacao_normalizada_tendencia` | card de tendência e auditoria |
 

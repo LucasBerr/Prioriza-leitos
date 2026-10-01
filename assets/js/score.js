@@ -27,15 +27,17 @@ const DIMENSIONS = [
   },
   {
     key: "evasao",
-    name: "Evasão intermunicipal",
+    name: "Evasão intermunicipal / dispersão regional",
     icon: "EH",
     field: "evasao_hospitalar_normalizada_0_100",
     defaultWeight: 15,
-    short: "Parcela de residentes internados fora do município.",
+    short: "Evasão local ou dispersão além da oferta regional estimada.",
     source: "SIH/SUS",
-    indicator: "Internações fora do município divididas pelas internações de residentes.",
-    raw: (row) => `${P.formatPercent(row.evasao_hospitalar_percentual, 1)} (${P.formatNumber(row.internacoes_fora_municipio)} fora do município)`,
-    explanation: "Preserva a distinção entre município de residência e município de internação.",
+    indicator: "Com leito local: internações fora ÷ internações residentes. Sem leito local: outros destinos ÷ internações fora.",
+    raw: (row) => row.situacao_evasao_no_score === "dispersao_fora_polo_referencia"
+      ? `${P.formatPercent(row.dispersao_fora_polo_referencia_percentual, 1)} (${P.formatNumber(row.internacoes_fora_outros_destinos)} em outros destinos)`
+      : `${P.formatPercent(row.evasao_hospitalar_percentual, 1)} (${P.formatNumber(row.internacoes_fora_municipio)} fora do município)`,
+    explanation: "Sem oferta local, sair do município é esperado; o score passa a observar a dispersão além do polo de referência estimado.",
   },
   {
     key: "risco",
