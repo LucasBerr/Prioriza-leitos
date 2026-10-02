@@ -21,14 +21,16 @@ Não há backend, etapa de build ou gerenciador de pacotes. O navegador carrega 
 Pontos de entrada:
 
 - `index.html`: mapa, filtros, busca e detalhes do município;
-- `entenda-o-score.html`: explicação dos componentes e simulador de pesos;
+- `entenda-o-score.html`: simulador de pesos;
+- `como-o-score-e-calculado.html`: explicação visual das fontes, componentes e composição do score;
 - `assets/js/app.js`: tipos, pesos padrão, carregamento de dados e utilitários compartilhados;
 - `assets/js/maps.js`: mapa, ranking filtrado e detalhes;
 - `assets/js/score.js`: decomposição do score e edição dos pesos;
 - `assets/js/charts.js`: gráficos Plotly usados pelas páginas correspondentes;
 - `assets/css/styles.css`: estilos compartilhados e comportamento responsivo;
 - `data/rankings.json`: contrato principal consumido pela aplicação;
-- `data/municipios.geojson`: artefato geográfico publicado; confirme o consumidor antes de alterar;
+- `data/municipios_limites.geojson`: malha municipal usada para exibir cobertura regional;
+- `data/municipios.geojson`: pontos municipais para consumidores legados; confirme o consumidor antes de alterar;
 - `README.md`, `dados-e-metodologia.md`, `relatorio.md`: documentação funcional e metodológica.
 
 Algumas páginas temáticas somente redirecionam. Confirme seu conteúdo antes de tratá-las como telas independentes.
@@ -42,7 +44,7 @@ Preservar os nomes de campos consumidos pelo JavaScript. Os principais grupos s�
 - identificação e regionalização;
 - população-alvo, internações e oferta SUS;
 - demanda, déficit de oferta, evasão, risco e crescimento normalizados;
-- `score_prioridade_mvp` e `faixa_prioridade`.
+- `score_padrao_0_100`, `posicao_relativa_por_tipo` e `faixa_prioridade`.
 
 Os dados brutos e intermediários não pertencem a este repositório de publicação. A rotina executável que produziu os artefatos atuais não está identificada neste checkout.
 
@@ -71,7 +73,7 @@ python -m http.server 8000
 Abrir `http://localhost:8000/` e verificar, conforme a mudança:
 
 - carregamento sem erro de `data/rankings.json`;
-- os cinco tipos de leito;
+- os três tipos ativos de leito;
 - busca, filtros, seleção e ordenação;
 - ida ao explicador e retorno ao mesmo município/tipo via query string;
 - edição, soma, salvamento e restauração dos pesos;
